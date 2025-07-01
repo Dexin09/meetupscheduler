@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meetup Scheduler</title>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 2rem;
+    }
+    #calendar {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .legend span {
+      display: inline-block;
+      padding: 0.5rem;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      color: #fff;
+    }
+    .best { background-color: #28a745; }
+    .good { background-color: #17a2b8; }
+    .unsure { background-color: #ffc107; color: #000; }
+    .restricted { background-color: #fd7e14; }
+    .no { background-color: #dc3545; }
+  </style>
+</head>
+<body>
+  <h1>Meetup Scheduler</h1>
+  <p>Click on a day to mark your availability. Each click cycles through options.</p>
+
+  <div class="legend">
+    <span class="best">Best</span>
+    <span class="good">Good</span>
+    <span class="unsure">Unsure</span>
+    <span class="restricted">With Restrictions</span>
+    <span class="no">No</span>
+  </div>
+
+  <div id="calendar"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const statusCycle = ['best', 'good', 'unsure', 'restricted', 'no', 'clear'];
+      const colors = {
+        best: '#28a745',
+        good: '#17a2b8',
+        unsure: '#ffc107',
+        restricted: '#fd7e14',
+        no: '#dc3545'
+      };
+      const calendarEl = document.getElementById('calendar');
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        selectable: true,
+        selectMirror: true,
+        select: function(info) {
+          const existing = calendar.getEventById(info.startStr);
+          let nextStatusIndex = 0;
+          if (existing) {
+            const currentStatus = existing.extendedProps.status;
+            nextStatusIndex = (statusCycle.indexOf(currentStatus) + 1) % statusCycle.length;
+            existing.remove();
+          }
+          const newStatus = statusCycle[nextStatusIndex];
+          if (newStatus !== 'clear') {
+            calendar.addEvent({
+              id: info.startStr,
+              title: newStatus.toUpperCase(),
+              start: info.startStr,
+              allDay: true,
+              backgroundColor: colors[newStatus],
+              borderColor: colors[newStatus],
+              textColor: (newStatus === 'unsure') ? '#000' : '#fff',
+              extendedProps: { status: newStatus }
+            });
+          }
+        }
+      });
+
+      calendar.render();
+    });
+  </script>
+</body>
+</html>
