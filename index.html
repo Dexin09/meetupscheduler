@@ -8,6 +8,7 @@
   <style>
     body {
       font-family: sans-serif;
+      text-align: center
       margin: 2rem;
     }
     #calendar {
@@ -27,11 +28,10 @@
       font-size: 0.9rem;
       color: #fff;
     }
-    .best { background-color: #28a745; }
+    .great { background-color: #28a745; }
     .good { background-color: #17a2b8; }
-    .unsure { background-color: #ffc107; color: #000; }
-    .restricted { background-color: #fd7e14; }
-    .no { background-color: #dc3545; }
+    .bad { background-color: #fd7e14; }
+    .impossible { background-color: #dc3545; }
 
     .top-controls {
       text-align: center;
@@ -49,7 +49,7 @@
 </head>
 <body>
   <h1>Meetup Scheduler</h1>
-  <p style="text-align: center">Enter your name and click on dates to mark your availability. Each click cycles through options.</p>
+  <p>Enter your name and click on dates to mark your availability. Each click cycles through options.</p>
 
   <div class="top-controls">
     <input type="text" id="nameInput" placeholder="Your name" />
@@ -57,11 +57,10 @@
   </div>
 
   <div class="legend">
-    <span class="best">Best</span>
+    <span class="great">Great</span>
     <span class="good">Good</span>
-    <span class="unsure">Unsure</span>
-    <span class="restricted">With Restrictions</span>
-    <span class="no">No</span>
+    <span class="bad">Bad</span>
+    <span class="impossible">Impossible</span>
   </div>
 
   <div id="calendar"></div>
@@ -70,13 +69,12 @@
   <script>
     const scriptBase = "https://script.google.com/macros/s/AKfycby79bX2QOq413YuDNZ_ffsUoqiuDGSXB5L3U6fLV1nOn6OWpA102AuwDVME71zdJZHDKw/exec"; // Replace with your deployed Apps Script base URL
 
-    const statusCycle = ['best', 'good', 'unsure', 'restricted', 'no', 'clear'];
+    const statusCycle = ['great', 'good', 'bad', 'impossible', 'clear'];
     const colors = {
-      best: '#28a745',
-      good: '#17a2b8',
-      unsure: '#ffc107',
-      restricted: '#fd7e14',
-      no: '#dc3545'
+      great: '#30BF78',
+      good: '#60BF30',
+      bad: '#BFA730',
+      impossible: '#BF3030'
     };
 
     const getEventName = () => {
@@ -128,7 +126,7 @@
             allDay: true,
             backgroundColor: colors[newStatus],
             borderColor: colors[newStatus],
-            textColor: (newStatus === 'unsure') ? '#000' : '#fff',
+            textColor: '#fff',
             extendedProps: { status: newStatus }
           });
         }
@@ -155,7 +153,7 @@
               allDay: true,
               backgroundColor: colors[status],
               borderColor: colors[status],
-              textColor: (status === 'unsure') ? '#000' : '#fff',
+              textColor: '#fff',
               extendedProps: { status }
             });
           });
