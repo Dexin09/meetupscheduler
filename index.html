@@ -11,8 +11,8 @@
       margin: 2rem;
     }
     #calendar {
-      max-width: 900px;
-      margin: 0 auto;
+      max-width: 700px;
+      margin: 2rem auto;
     }
     .legend {
       display: flex;
@@ -27,48 +27,78 @@
       font-size: 0.9rem;
       color: #fff;
     }
-    .A { background-color: #28a745; }
-    .B { background-color: #17a2b8; }
-    .C { background-color: #ffc107; color: #000; }
-    .D { background-color: #fd7e14; }
-    .E { background-color: #dc3545; }
+    .best { background-color: #28a745; }
+    .good { background-color: #17a2b8; }
+    .unsure { background-color: #ffc107; color: #000; }
+    .restricted { background-color: #fd7e14; }
+    .no { background-color: #dc3545; }
+
+    .top-controls {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .top-controls input {
+      padding: 0.5rem;
+      width: 200px;
+      margin-right: 1rem;
+    }
+    .top-controls button {
+      padding: 0.5rem 1rem;
+    }
   </style>
 </head>
 <body>
   <h1>Meetup Scheduler</h1>
-  <p>Click on a day to mark your availability. Each click cycles through options. Then enter your name and submit.</p>
+  <p style="text-align: center">Enter your name and click on dates to mark your availability. Each click cycles through options.</p>
+
+  <div class="top-controls">
+    <input type="text" id="nameInput" placeholder="Your name" />
+    <button id="submitButton">Submit</button>
+  </div>
 
   <div class="legend">
-    <span class="A">A: Best / Great</span>
-    <span class="B">B: Good / Okay</span>
-    <span class="C">C: Unsure / Not Great</span>
-    <span class="D">D: Bad / Heavy Restrictions</span>
-    <span class="E">E: Definately Not</span>
+    <span class="best">Best</span>
+    <span class="good">Good</span>
+    <span class="unsure">Unsure</span>
+    <span class="restricted">With Restrictions</span>
+    <span class="no">No</span>
   </div>
 
   <div id="calendar"></div>
 
-  <div style="text-align: center; margin-top: 2rem;">
-    <input type="text" id="nameInput" placeholder="Your name" style="padding: 0.5rem; width: 200px;" />
-    <button id="submitButton" style="padding: 0.5rem 1rem; margin-left: 1rem;">Submit</button>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycby79bX2QOq413YuDNZ_ffsUoqiuDGSXB5L3U6fLV1nOn6OWpA102AuwDVME71zdJZHDKw/exec"; // Replace with your deployed Apps Script URL
+    const scriptBase = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE"; // Replace with your deployed Apps Script base URL
 
-    const statusCycle = ['A', 'B', 'C', 'D', 'E', 'clear'];
+    const statusCycle = ['best', 'good', 'unsure', 'restricted', 'no', 'clear'];
     const colors = {
-      A: '#28a745',
-      B: '#17a2b8',
-      C: '#ffc107',
-      D: '#fd7e14',
-      E: '#dc3545'
+      best: '#28a745',
+      good: '#17a2b8',
+      unsure: '#ffc107',
+      restricted: '#fd7e14',
+      no: '#dc3545'
     };
 
     const getEventName = () => {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get('event') || 'DefaultEvent';
+    };
+
+    const getUUID = () => {
+      let id = localStorage.getItem('user_uuid');
+      if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem('user_uuid', id);
+      }
+      return id;
+    };
+
+    const getUserName = () => {
+      return localStorage.getItem('username') || '';
+    };
+
+    const saveUserName = (name) => {
+      localStorage.setItem('username', name);
     };
 
     const calendarEl = document.getElementById('calendar');
@@ -98,7 +128,7 @@
             allDay: true,
             backgroundColor: colors[newStatus],
             borderColor: colors[newStatus],
-            textColor: (newStatus === 'C') ? '#000' : '#fff',
+            textColor: (newStatus === 'unsure') ? '#000' : '#fff',
             extendedProps: { status: newStatus }
           });
         }
@@ -107,22 +137,54 @@
 
     calendar.render();
 
+    async function loadUserAvailability() {
+      const uuid = getUUID();
+      const eventName = getEventName();
+      const url = `${scriptBase}?uuid=${uuid}&eventName=${encodeURIComponent(eventName)}`;
+
+      try {
+        const res = await fetch(url);
+        const result = await res.json();
+        if (result.success && Array.isArray(result.entries)) {
+          result.entries.forEach(({ date, status }) => {
+            selectedData[date] = status;
+            calendar.addEvent({
+              id: date,
+              title: status.toUpperCase(),
+              start: date,
+              allDay: true,
+              backgroundColor: colors[status],
+              borderColor: colors[status],
+              textColor: (status === 'unsure') ? '#000' : '#fff',
+              extendedProps: { status }
+            });
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load previous availability", err);
+      }
+    }
+
     document.getElementById('submitButton').addEventListener('click', async () => {
       const name = document.getElementById('nameInput').value.trim();
       const eventName = getEventName();
+      const uuid = getUUID();
       if (!name) return alert('Please enter your name');
       if (Object.keys(selectedData).length === 0) return alert('Please select at least one date');
+
+      saveUserName(name);
 
       const entries = Object.entries(selectedData).map(([date, status]) => ({ date, status }));
 
       const payload = {
         name,
+        uuid,
         eventName,
         entries
       };
 
       try {
-        const res = await fetch(scriptURL, {
+        const res = await fetch(scriptBase, {
           method: 'POST',
           body: JSON.stringify(payload),
           headers: { 'Content-Type': 'application/json' }
@@ -130,15 +192,19 @@
         const result = await res.json();
         if (result.success) {
           alert('Submitted successfully!');
-          selectedData = {};
-          calendar.getEvents().forEach(ev => ev.remove());
         } else {
-          alert('Submission failed: ' + (result.error || 'UnkEwn error'));
+          alert('Submission failed: ' + (result.error || 'Unknown error'));
         }
       } catch (err) {
         alert('Error submitting data. Check the script URL and permissions.');
         console.error(err);
       }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const name = getUserName();
+      if (name) document.getElementById('nameInput').value = name;
+      loadUserAvailability();
     });
   </script>
 </body>
