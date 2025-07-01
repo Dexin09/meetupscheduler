@@ -27,69 +27,118 @@
       font-size: 0.9rem;
       color: #fff;
     }
-    .best { background-color: #28a745; }
-    .good { background-color: #17a2b8; }
-    .unsure { background-color: #ffc107; color: #000; }
-    .restricted { background-color: #fd7e14; }
-    .no { background-color: #dc3545; }
+    .A { background-color: #28a745; }
+    .B { background-color: #17a2b8; }
+    .C { background-color: #ffc107; color: #000; }
+    .D { background-color: #fd7e14; }
+    .E { background-color: #dc3545; }
   </style>
 </head>
 <body>
   <h1>Meetup Scheduler</h1>
-  <p>Click on a day to mark your availability. Each click cycles through options.</p>
+  <p>Click on a day to mark your availability. Each click cycles through options. Then enter your name and submit.</p>
 
   <div class="legend">
-    <span class="best">Best</span>
-    <span class="good">Good</span>
-    <span class="unsure">Unsure</span>
-    <span class="restricted">With Restrictions</span>
-    <span class="no">No</span>
+    <span class="A">A: Best / Great</span>
+    <span class="B">B: Good / Okay</span>
+    <span class="C">C: Unsure / Not Great</span>
+    <span class="D">D: Bad / Heavy Restrictions</span>
+    <span class="E">E: Definately Not</span>
   </div>
 
   <div id="calendar"></div>
 
+  <div style="text-align: center; margin-top: 2rem;">
+    <input type="text" id="nameInput" placeholder="Your name" style="padding: 0.5rem; width: 200px;" />
+    <button id="submitButton" style="padding: 0.5rem 1rem; margin-left: 1rem;">Submit</button>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const statusCycle = ['best', 'good', 'unsure', 'restricted', 'no', 'clear'];
-      const colors = {
-        best: '#28a745',
-        good: '#17a2b8',
-        unsure: '#ffc107',
-        restricted: '#fd7e14',
-        no: '#dc3545'
-      };
-      const calendarEl = document.getElementById('calendar');
+    const scriptURL = "https://script.google.com/macros/s/AKfycby79bX2QOq413YuDNZ_ffsUoqiuDGSXB5L3U6fLV1nOn6OWpA102AuwDVME71zdJZHDKw/exec"; // Replace with your deployed Apps Script URL
 
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        selectable: true,
-        selectMirror: true,
-        select: function(info) {
-          const existing = calendar.getEventById(info.startStr);
-          let nextStatusIndex = 0;
-          if (existing) {
-            const currentStatus = existing.extendedProps.status;
-            nextStatusIndex = (statusCycle.indexOf(currentStatus) + 1) % statusCycle.length;
-            existing.remove();
-          }
-          const newStatus = statusCycle[nextStatusIndex];
-          if (newStatus !== 'clear') {
-            calendar.addEvent({
-              id: info.startStr,
-              title: newStatus.toUpperCase(),
-              start: info.startStr,
-              allDay: true,
-              backgroundColor: colors[newStatus],
-              borderColor: colors[newStatus],
-              textColor: (newStatus === 'unsure') ? '#000' : '#fff',
-              extendedProps: { status: newStatus }
-            });
-          }
+    const statusCycle = ['A', 'B', 'C', 'D', 'E', 'clear'];
+    const colors = {
+      A: '#28a745',
+      B: '#17a2b8',
+      C: '#ffc107',
+      D: '#fd7e14',
+      E: '#dc3545'
+    };
+
+    const getEventName = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('event') || 'DefaultEvent';
+    };
+
+    const calendarEl = document.getElementById('calendar');
+    let selectedData = {};
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      selectable: true,
+      selectMirror: true,
+      select: function(info) {
+        const dateStr = info.startStr;
+        const existing = calendar.getEventById(dateStr);
+        let nextStatusIndex = 0;
+        if (existing) {
+          const currentStatus = existing.extendedProps.status;
+          nextStatusIndex = (statusCycle.indexOf(currentStatus) + 1) % statusCycle.length;
+          existing.remove();
         }
-      });
+        const newStatus = statusCycle[nextStatusIndex];
+        delete selectedData[dateStr];
+        if (newStatus !== 'clear') {
+          selectedData[dateStr] = newStatus;
+          calendar.addEvent({
+            id: dateStr,
+            title: newStatus.toUpperCase(),
+            start: dateStr,
+            allDay: true,
+            backgroundColor: colors[newStatus],
+            borderColor: colors[newStatus],
+            textColor: (newStatus === 'C') ? '#000' : '#fff',
+            extendedProps: { status: newStatus }
+          });
+        }
+      }
+    });
 
-      calendar.render();
+    calendar.render();
+
+    document.getElementById('submitButton').addEventListener('click', async () => {
+      const name = document.getElementById('nameInput').value.trim();
+      const eventName = getEventName();
+      if (!name) return alert('Please enter your name');
+      if (Object.keys(selectedData).length === 0) return alert('Please select at least one date');
+
+      const entries = Object.entries(selectedData).map(([date, status]) => ({ date, status }));
+
+      const payload = {
+        name,
+        eventName,
+        entries
+      };
+
+      try {
+        const res = await fetch(scriptURL, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert('Submitted successfully!');
+          selectedData = {};
+          calendar.getEvents().forEach(ev => ev.remove());
+        } else {
+          alert('Submission failed: ' + (result.error || 'UnkEwn error'));
+        }
+      } catch (err) {
+        alert('Error submitting data. Check the script URL and permissions.');
+        console.error(err);
+      }
     });
   </script>
 </body>
