@@ -28,10 +28,10 @@
       font-size: 0.9rem;
       color: #fff;
     }
-    .great { background-color: #28a745; }
-    .good { background-color: #17a2b8; }
-    .bad { background-color: #fd7e14; }
-    .impossible { background-color: #dc3545; }
+    .great { background-color: #30BF78; }
+    .good { background-color: #60BF30; }
+    .bad { background-color: #BFA730; }
+    .awful { background-color: #BF3030; }
 
     .top-controls {
       text-align: center;
@@ -57,10 +57,10 @@
   </div>
 
   <div class="legend">
-    <span class="great">Great</span>
-    <span class="good">Good</span>
-    <span class="bad">Bad</span>
-    <span class="impossible">Impossible</span>
+    <span class="great">✅ Great</span>
+    <span class="good">👍 Good</span>
+    <span class="bad">⚠️ Bad</span>
+    <span class="awful">❌ Awful</span>
   </div>
 
   <div id="calendar"></div>
@@ -69,12 +69,12 @@
   <script>
     const scriptBase = "https://script.google.com/macros/s/AKfycby79bX2QOq413YuDNZ_ffsUoqiuDGSXB5L3U6fLV1nOn6OWpA102AuwDVME71zdJZHDKw/exec"; // Replace with your deployed Apps Script base URL
 
-    const statusCycle = ['great', 'good', 'bad', 'impossible', 'clear'];
+    const statusCycle = ['great', 'good', 'bad', 'awful', 'clear'];
     const colors = {
       great: '#30BF78',
       good: '#60BF30',
       bad: '#BFA730',
-      impossible: '#BF3030'
+      awful: '#BF3030'
     };
 
     const getEventName = () => {
