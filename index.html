@@ -4,11 +4,7 @@
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>Meetup Scheduler</title>
-
-	<!-- Correct CSS from @fullcalendar/core and daygrid -->
-	<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.min.css" rel="stylesheet" />
-
+	<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
 	<style>
 		body {
 			font-family: sans-serif;
@@ -65,16 +61,11 @@
 	</div>
 	<div id="calendar"></div>
 
-	<!-- FullCalendar JS core + daygrid -->
-	<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/index.global.min.js"></script>
-
-	<!-- Supabase UMD build -->
+	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.33.0/dist/umd/supabase.min.js"></script>
-
 	<script>
 		const supabaseUrl = 'https://gkpfmiomjxshpaodisxa.supabase.co';
-		const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrcGZtaW9tanhzaHBhb2Rpc3hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTIzNDgsImV4cCI6MjA2Njk4ODM0OH0.Svi1Xl88euqNn9osgXvbkPgb-iVrKo5mPCdIdWUP45g';
+		const supabaseKey = 'your_supabase_key';
 		const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 		const statusCycle = ['great', 'good', 'bad', 'awful', 'clear'];
@@ -100,41 +91,18 @@
 			return urlParams.get('event') || 'DefaultEvent';
 		};
 
-		const uuid = getUUID();
-		const eventName = getEventName();
 		let selectedData = {};
 
-		async function loadUserAvailability(calendar) {
-			const { data, error } = await supabase
-				.from('availabilities')
-				.select('date, status')
-				.eq('uuid', uuid)
-				.eq('eventName', eventName);
-			if (error) { console.error('Load error:', error); return; }
-			data.forEach(({ date, status }) => {
-				selectedData[date] = status;
-				calendar.addEvent({
-					id: date,
-					title: status.toUpperCase(),
-					start: date,
-					allDay: true,
-					backgroundColor: colors[status],
-					borderColor: colors[status],
-					textColor: '#fff',
-					extendedProps: { status }
-				});
-			});
-		}
-
 		window.addEventListener('DOMContentLoaded', () => {
+			const uuid = getUUID();
+			const eventName = getEventName();
 			const name = getUserName();
 			if (name) document.getElementById('nameInput').value = name;
 
-			const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-				plugins: [ FullCalendar.dayGridPlugin ],
+			const calendarEl = document.getElementById('calendar');
+			const calendar = new FullCalendar.Calendar(calendarEl, {
 				initialView: 'dayGridMonth',
 				selectable: true,
-				selectMirror: true,
 				select: function(info) {
 					const dateStr = info.startStr;
 					const existing = calendar.getEventById(dateStr);
@@ -162,7 +130,29 @@
 				}
 			});
 			calendar.render();
-			loadUserAvailability(calendar);
+
+			async function loadUserAvailability() {
+				const { data, error } = await supabase
+					.from('availabilities')
+					.select('date, status')
+					.eq('uuid', uuid)
+					.eq('eventName', eventName);
+				if (error) { console.error('Load error:', error); return; }
+				data.forEach(({ date, status }) => {
+					selectedData[date] = status;
+					calendar.addEvent({
+						id: date,
+						title: status.toUpperCase(),
+						start: date,
+						allDay: true,
+						backgroundColor: colors[status],
+						borderColor: colors[status],
+						textColor: '#fff',
+						extendedProps: { status }
+					});
+				});
+			}
+			loadUserAvailability();
 
 			document.getElementById('submitButton').addEventListener('click', async () => {
 				const name = document.getElementById('nameInput').value.trim();
@@ -171,13 +161,12 @@
 				saveUserName(name);
 
 				await supabase.from('availabilities').delete().eq('uuid', uuid).eq('eventName', eventName);
-
 				const entries = Object.entries(selectedData).map(([date, status]) => ({
 					uuid, name, eventName, date, status
 				}));
 				const { error } = await supabase.from('availabilities').insert(entries);
-				if (error) { alert('Submission failed: ' + error.message); }
-				else { alert('Submitted successfully!'); }
+				if (error) alert('Submission failed: ' + error.message);
+				else alert('Submitted successfully!');
 			});
 		});
 	</script>
