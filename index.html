@@ -34,120 +34,133 @@
 		<span class="awful">❌ Awful</span>
 	</div>
 	<div id="calendar"></div>
-
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.33.0/dist/umd/supabase.min.js"></script>
 	<script>
-		window.addEventListener('DOMContentLoaded', () => {
-			const supabaseUrl = 'https://gkpfmiomjxshpaodisxa.supabase.co';
-			const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrcGZtaW9tanhzaHBhb2Rpc3hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTIzNDgsImV4cCI6MjA2Njk4ODM0OH0.Svi1Xl88euqNn9osgXvbkPgb-iVrKo5mPCdIdWUP45g';
-			const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-			const statusCycle = ['great', 'good', 'bad', 'awful', 'clear'];
-			const colors = {
-				great: '#30BF78',
-				good: '#60BF30',
-				bad: '#BFA730',
-				awful: '#BF3030'
-			};
-
-			const getUUID = () => {
-				let id = localStorage.getItem('user_uuid');
-				if (!id) {
-					id = crypto.randomUUID();
-					localStorage.setItem('user_uuid', id);
+	(async () => {
+		// Supabase config
+		const supabaseUrl = "https://gkpfmiomjxshpaodisxa.supabase.co";
+		const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrcGZtaW9tanhzaHBhb2Rpc3hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTIzNDgsImV4cCI6MjA2Njk4ODM0OH0.Svi1Xl88euqNn9osgXvbkPgb-iVrKo5mPCdIdWUP45g";
+		const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+	
+		// Get or create UUID
+		let uuid = localStorage.getItem("user_uuid");
+		if (!uuid) {
+			uuid = crypto.randomUUID();
+			localStorage.setItem("user_uuid", uuid);
+		}
+	
+		// Read name from localStorage
+		const nameInput = document.getElementById("nameInput");
+		const storedName = localStorage.getItem("username");
+		if (storedName) nameInput.value = storedName;
+	
+		// Read eventName from URL or default
+		const urlParams = new URLSearchParams(window.location.search);
+		const eventName = urlParams.get("event") || "DefaultEvent";
+	
+		// Status cycle & colors
+		const statuses = ["great", "good", "bad", "awful", "clear"];
+		const colors = {
+			great: "#30BF78",
+			good: "#60BF30",
+			bad: "#BFA730",
+			awful: "#BF3030"
+		};
+	
+		// Track selected dates & statuses
+		let selectedData = {};
+	
+		// Init FullCalendar
+		const calendarEl = document.getElementById('calendar');
+		const calendar = new FullCalendar.Calendar(calendarEl, {
+			initialView: 'dayGridMonth',
+			dateClick: function(info) {
+				const dateStr = info.dateStr;
+				let current = selectedData[dateStr];
+				let nextStatus = statuses[0];
+				if (current) {
+					const idx = statuses.indexOf(current);
+					nextStatus = statuses[(idx + 1) % statuses.length];
 				}
-				return id;
-			};
-			const getUserName = () => localStorage.getItem('username') || '';
-			const saveUserName = (name) => localStorage.setItem('username', name);
-			const getEventName = () => {
-				const urlParams = new URLSearchParams(window.location.search);
-				return urlParams.get('event') || 'DefaultEvent';
-			};
-
-			const uuid = getUUID();
-			const eventName = getEventName();
-			let selectedData = {};
-
-			const calendarEl = document.getElementById('calendar');
-			const calendar = new FullCalendar.Calendar(calendarEl, {
-				initialView: 'dayGridMonth',
-				selectable: true,
-				selectMirror: true,
-				select: function(info) {
-					const dateStr = info.startStr;
-					const existing = calendar.getEventById(dateStr);
-					let nextStatusIndex = 0;
-					if (existing) {
-						const currentStatus = existing.extendedProps.status;
-						nextStatusIndex = (statusCycle.indexOf(currentStatus) + 1) % statusCycle.length;
-						existing.remove();
-					}
-					const newStatus = statusCycle[nextStatusIndex];
+				// Update
+				if (nextStatus === "clear") {
 					delete selectedData[dateStr];
-					if (newStatus !== 'clear') {
-						selectedData[dateStr] = newStatus;
-						calendar.addEvent({
-							id: dateStr,
-							title: newStatus.toUpperCase(),
-							start: dateStr,
-							allDay: true,
-							backgroundColor: colors[newStatus],
-							borderColor: colors[newStatus],
-							textColor: '#fff',
-							extendedProps: { status: newStatus }
-						});
-					}
-				}
-			});
-			calendar.render();
-
-			async function loadUserAvailability() {
-				const { data, error } = await supabase
-					.from('availabilities')
-					.select('date, status')
-					.eq('uuid', uuid)
-					.eq('eventName', eventName);
-				if (error) { console.error('Load error:', error); return; }
-				data.forEach(({ date, status }) => {
-					selectedData[date] = status;
+					calendar.getEvents().filter(e=>e.id===dateStr).forEach(e=>e.remove());
+				} else {
+					selectedData[dateStr] = nextStatus;
+					// Remove old, add new
+					calendar.getEvents().filter(e=>e.id===dateStr).forEach(e=>e.remove());
 					calendar.addEvent({
-						id: date,
-						title: status.toUpperCase(),
-						start: date,
-						allDay: true,
-						backgroundColor: colors[status],
-						borderColor: colors[status],
-						textColor: '#fff',
-						extendedProps: { status }
+						id: dateStr,
+						title: nextStatus,
+						start: dateStr,
+						color: colors[nextStatus]
 					});
-				});
+				}
 			}
-
-			const savedName = getUserName();
-			if (savedName) document.getElementById('nameInput').value = savedName;
-
-			loadUserAvailability();
-
-			document.getElementById('submitButton').addEventListener('click', async () => {
-				const name = document.getElementById('nameInput').value.trim();
-				if (!name) return alert('Please enter your name');
-				if (Object.keys(selectedData).length === 0) return alert('Please select at least one date');
-				saveUserName(name);
-
-				// Remove old entries first
-				await supabase.from('availabilities').delete().eq('uuid', uuid).eq('eventName', eventName);
-
-				// Insert new entries
-				const entries = Object.entries(selectedData).map(([date, status]) => ({
-					uuid, name, eventName, date, status
-				}));
-				const { error } = await supabase.from('availabilities').insert(entries);
-				if (error) { alert('Submission failed: ' + error.message); }
-				else { alert('Submitted successfully!'); }
-			});
 		});
+		calendar.render();
+	
+		// Load existing data
+		async function loadData() {
+			const { data, error } = await supabase
+				.from('availabilities')
+				.select('*')
+				.eq('uuid', uuid)
+				.eq('eventName', eventName);
+			if (error) {
+				console.error("Load error:", error);
+				return;
+			}
+			data.forEach(row => {
+				selectedData[row.date] = row.status;
+				calendar.addEvent({
+					id: row.date,
+					title: row.status,
+					start: row.date,
+					color: colors[row.status]
+				});
+			});
+		}
+		await loadData();
+	
+		// Submit handler
+		document.getElementById("submitButton").addEventListener("click", async () => {
+			const name = nameInput.value.trim();
+			if (!name) {
+				alert("Name cannot be empty!");
+				return;
+			}
+			if (Object.keys(selectedData).length === 0) {
+				alert("Select at least one date!");
+				return;
+			}
+			localStorage.setItem("username", name);
+			// Delete existing
+			const { error: deleteError } = await supabase
+				.from('availabilities')
+				.delete()
+				.eq('uuid', uuid)
+				.eq('eventName', eventName);
+			if (deleteError) {
+				alert("Failed to clear old data: " + deleteError.message);
+				return;
+			}
+			// Insert new
+			const newRows = Object.entries(selectedData).map(([date, status]) => ({
+				uuid, name, eventName, date, status
+			}));
+			const { error: insertError } = await supabase
+				.from('availabilities')
+				.insert(newRows);
+			if (insertError) {
+				alert("Failed to save data: " + insertError.message);
+			} else {
+				alert("Availability saved!");
+			}
+		});
+	})();
 	</script>
 </body>
 </html>
