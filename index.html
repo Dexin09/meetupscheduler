@@ -4,7 +4,7 @@
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>Meetup Scheduler</title>
-	<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet" />
+	<link href="https://unpkg.com/fullcalendar@6.1.8/main.min.css" rel="stylesheet" />
 	<style>
 		body {
 			font-family: sans-serif;
@@ -61,9 +61,8 @@
 	</div>
 	<div id="calendar"></div>
 
-	<!-- SCRIPTS: order matters -->
 	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.33.0/dist/umd/supabase.min.js"></script>
 	<script>
 	const supabaseUrl = 'https://gkpfmiomjxshpaodisxa.supabase.co';
 	const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrcGZtaW9tanhzaHBhb2Rpc3hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTIzNDgsImV4cCI6MjA2Njk4ODM0OH0.Svi1Xl88euqNn9osgXvbkPgb-iVrKo5mPCdIdWUP45g'; // keep your key here
