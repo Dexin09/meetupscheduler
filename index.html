@@ -98,40 +98,7 @@
 	const eventName = getEventName();
 	let selectedData = {};
 
-	const calendarEl = document.getElementById('calendar');
-	const calendar = new FullCalendar.Calendar(calendarEl, {
-		initialView: 'dayGridMonth',
-		selectable: true,
-		selectMirror: true,
-		select: function(info) {
-			const dateStr = info.startStr;
-			const existing = calendar.getEventById(dateStr);
-			let nextStatusIndex = 0;
-			if (existing) {
-				const currentStatus = existing.extendedProps.status;
-				nextStatusIndex = (statusCycle.indexOf(currentStatus) + 1) % statusCycle.length;
-				existing.remove();
-			}
-			const newStatus = statusCycle[nextStatusIndex];
-			delete selectedData[dateStr];
-			if (newStatus !== 'clear') {
-				selectedData[dateStr] = newStatus;
-				calendar.addEvent({
-					id: dateStr,
-					title: newStatus.toUpperCase(),
-					start: dateStr,
-					allDay: true,
-					backgroundColor: colors[newStatus],
-					borderColor: colors[newStatus],
-					textColor: '#fff',
-					extendedProps: { status: newStatus }
-				});
-			}
-		}
-	});
-	calendar.render();
-
-	async function loadUserAvailability() {
+	async function loadUserAvailability(calendar) {
 		const { data, error } = await supabase
 			.from('availabilities')
 			.select('date, status')
@@ -158,43 +125,78 @@
 		});
 	}
 
-	document.getElementById('submitButton').addEventListener('click', async () => {
-		const name = document.getElementById('nameInput').value.trim();
-		if (!name) return alert('Please enter your name');
-		if (Object.keys(selectedData).length === 0) return alert('Please select at least one date');
-
-		saveUserName(name);
-
-		await supabase
-			.from('availabilities')
-			.delete()
-			.eq('uuid', uuid)
-			.eq('eventName', eventName);
-
-		const entries = Object.entries(selectedData).map(([date, status]) => ({
-			uuid,
-			name,
-			eventName,
-			date,
-			status
-		}));
-
-		const { error } = await supabase
-			.from('availabilities')
-			.insert(entries);
-
-		if (error) {
-			alert('Submission failed: ' + error.message);
-		} else {
-			alert('Submitted successfully!');
-		}
-	});
-
 	window.addEventListener('DOMContentLoaded', () => {
 		const name = getUserName();
 		if (name) document.getElementById('nameInput').value = name;
-		loadUserAvailability();
+
+		const calendarEl = document.getElementById('calendar');
+		const calendar = new FullCalendar.Calendar(calendarEl, {
+			initialView: 'dayGridMonth',
+			selectable: true,
+			selectMirror: true,
+			select: function(info) {
+				const dateStr = info.startStr;
+				const existing = calendar.getEventById(dateStr);
+				let nextStatusIndex = 0;
+				if (existing) {
+					const currentStatus = existing.extendedProps.status;
+					nextStatusIndex = (statusCycle.indexOf(currentStatus) + 1) % statusCycle.length;
+					existing.remove();
+				}
+				const newStatus = statusCycle[nextStatusIndex];
+				delete selectedData[dateStr];
+				if (newStatus !== 'clear') {
+					selectedData[dateStr] = newStatus;
+					calendar.addEvent({
+						id: dateStr,
+						title: newStatus.toUpperCase(),
+						start: dateStr,
+						allDay: true,
+						backgroundColor: colors[newStatus],
+						borderColor: colors[newStatus],
+						textColor: '#fff',
+						extendedProps: { status: newStatus }
+					});
+				}
+			}
+		});
+		calendar.render();
+
+		loadUserAvailability(calendar);
+
+		document.getElementById('submitButton').addEventListener('click', async () => {
+			const name = document.getElementById('nameInput').value.trim();
+			if (!name) return alert('Please enter your name');
+			if (Object.keys(selectedData).length === 0) return alert('Please select at least one date');
+
+			saveUserName(name);
+
+			await supabase
+				.from('availabilities')
+				.delete()
+				.eq('uuid', uuid)
+				.eq('eventName', eventName);
+
+			const entries = Object.entries(selectedData).map(([date, status]) => ({
+				uuid,
+				name,
+				eventName,
+				date,
+				status
+			}));
+
+			const { error } = await supabase
+				.from('availabilities')
+				.insert(entries);
+
+			if (error) {
+				alert('Submission failed: ' + error.message);
+			} else {
+				alert('Submitted successfully!');
+			}
+		});
 	});
 	</script>
+
 </body>
 </html>
