@@ -49,26 +49,24 @@
 	<h1 style="text-align: center;">Meetup Scheduler</h1>
 	<p style="text-align: center;">Enter your name and click on dates to mark your availability. Each click cycles through options.</p>
 	<br><br>
-
 	<div class="top-controls">
 		<input type="text" id="nameInput" placeholder="Your name" />
 		<button id="submitButton">Submit</button>
 	</div>
-
 	<div class="legend">
 		<span class="great">✅ Great</span>
 		<span class="good">👍 Good</span>
 		<span class="bad">⚠️ Bad</span>
 		<span class="awful">❌ Awful</span>
 	</div>
-
 	<div id="calendar"></div>
 
+	<!-- SCRIPTS: order matters -->
 	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 	<script>
 	const supabaseUrl = 'https://gkpfmiomjxshpaodisxa.supabase.co';
-	const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrcGZtaW9tanhzaHBhb2Rpc3hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTIzNDgsImV4cCI6MjA2Njk4ODM0OH0.Svi1Xl88euqNn9osgXvbkPgb-iVrKo5mPCdIdWUP45g';
+	const supabaseKey = '...'; // keep your key here
 	const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 	const statusCycle = ['great', 'good', 'bad', 'awful', 'clear'];
@@ -104,12 +102,7 @@
 			.select('date, status')
 			.eq('uuid', uuid)
 			.eq('eventName', eventName);
-
-		if (error) {
-			console.error('Load error:', error);
-			return;
-		}
-
+		if (error) { console.error('Load error:', error); return; }
 		data.forEach(({ date, status }) => {
 			selectedData[date] = status;
 			calendar.addEvent({
@@ -161,42 +154,22 @@
 			}
 		});
 		calendar.render();
-
 		loadUserAvailability(calendar);
 
 		document.getElementById('submitButton').addEventListener('click', async () => {
 			const name = document.getElementById('nameInput').value.trim();
 			if (!name) return alert('Please enter your name');
 			if (Object.keys(selectedData).length === 0) return alert('Please select at least one date');
-
 			saveUserName(name);
-
-			await supabase
-				.from('availabilities')
-				.delete()
-				.eq('uuid', uuid)
-				.eq('eventName', eventName);
-
+			await supabase.from('availabilities').delete().eq('uuid', uuid).eq('eventName', eventName);
 			const entries = Object.entries(selectedData).map(([date, status]) => ({
-				uuid,
-				name,
-				eventName,
-				date,
-				status
+				uuid, name, eventName, date, status
 			}));
-
-			const { error } = await supabase
-				.from('availabilities')
-				.insert(entries);
-
-			if (error) {
-				alert('Submission failed: ' + error.message);
-			} else {
-				alert('Submitted successfully!');
-			}
+			const { error } = await supabase.from('availabilities').insert(entries);
+			if (error) { alert('Submission failed: ' + error.message); }
+			else { alert('Submitted successfully!'); }
 		});
 	});
 	</script>
-
 </body>
 </html>
