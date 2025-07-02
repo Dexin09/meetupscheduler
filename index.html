@@ -1,209 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Meetup Scheduler</title>
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 2rem;
-    }
-    #calendar {
-      max-width: 700px;
-      margin: 2rem auto;
-    }
-    .legend {
-      display: flex;
-      justify-content: center;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-    .legend span {
-      display: inline-block;
-      padding: 0.5rem;
-      border-radius: 5px;
-      font-size: 0.9rem;
-      color: #fff;
-    }
-    .great { background-color: #30BF78; }
-    .good { background-color: #60BF30; }
-    .bad { background-color: #BFA730; }
-    .awful { background-color: #BF3030; }
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Meetup Scheduler</title>
+	<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+	<style>
+		body {
+			font-family: sans-serif;
+			margin: 2rem;
+		}
+		#calendar {
+			max-width: 700px;
+			margin: 2rem auto;
+		}
+		.legend {
+			display: flex;
+			justify-content: center;
+			gap: 1rem;
+			margin-bottom: 1rem;
+		}
+		.legend span {
+			display: inline-block;
+			padding: 0.5rem;
+			border-radius: 5px;
+			font-size: 0.9rem;
+			color: #fff;
+		}
+		.great { background-color: #30BF78; }
+		.good { background-color: #60BF30; }
+		.bad { background-color: #BFA730; }
+		.awful { background-color: #BF3030; }
 
-    .top-controls {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-    .top-controls input {
-      padding: 0.5rem;
-      width: 200px;
-      margin-right: 1rem;
-    }
-    .top-controls button {
-      padding: 0.5rem 1rem;
-    }
-  </style>
+		.top-controls {
+			text-align: center;
+			margin-bottom: 1.5rem;
+		}
+		.top-controls input {
+			padding: 0.5rem;
+			width: 200px;
+			margin-right: 1rem;
+		}
+		.top-controls button {
+			padding: 0.5rem 1rem;
+		}
+	</style>
 </head>
 <body>
-  <h1 style="text-align: center;">Meetup Scheduler</h1>
-  <p style="text-align: center;">Enter your name and click on dates to mark your availability. Each click cycles through options.</p>
-  <br><br>
+	<h1 style="text-align: center;">Meetup Scheduler</h1>
+	<p style="text-align: center;">Enter your name and click on dates to mark your availability. Each click cycles through options.</p>
+	<br><br>
 
-  <div class="top-controls">
-    <input type="text" id="nameInput" placeholder="Your name" />
-    <button id="submitButton">Submit</button>
-  </div>
+	<div class="top-controls">
+		<input type="text" id="nameInput" placeholder="Your name" />
+		<button id="submitButton">Submit</button>
+	</div>
 
-  <div class="legend">
-    <span class="great">✅ Great</span>
-    <span class="good">👍 Good</span>
-    <span class="bad">⚠️ Bad</span>
-    <span class="awful">❌ Awful</span>
-  </div>
+	<div class="legend">
+		<span class="great">✅ Great</span>
+		<span class="good">👍 Good</span>
+		<span class="bad">⚠️ Bad</span>
+		<span class="awful">❌ Awful</span>
+	</div>
 
-  <div id="calendar"></div>
+	<div id="calendar"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-  <script>
-    const scriptBase = "https://script.google.com/macros/s/AKfycbxjtSdDKZNV1kyTRkGcVDgzMnNKmcUmLgZwAuspavveqfTlb0mUTYgJMUg1e-4vAXV-PQ/exec"; // Replace with your deployed Apps Script base URL
+	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+	<script>
+		const supabaseUrl = 'https://gkpfmiomjxshpaodisxa.supabase.co';
+		const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrcGZtaW9tanhzaHBhb2Rpc3hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTIzNDgsImV4cCI6MjA2Njk4ODM0OH0.Svi1Xl88euqNn9osgXvbkPgb-iVrKo5mPCdIdWUP45g'; // keep public, fine on frontend
 
-    const statusCycle = ['great', 'good', 'bad', 'awful', 'clear'];
-    const colors = {
-      great: '#30BF78',
-      good: '#60BF30',
-      bad: '#BFA730',
-      awful: '#BF3030'
-    };
+		const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-    const getEventName = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('event') || 'DefaultEvent';
-    };
+		const getEventName = () => {
+			const urlParams = new URLSearchParams(window.location.search);
+			return urlParams.get('event') || 'DefaultEvent';
+		};
+		
+		const uuid = getUUID();
+		const eventName = getEventName();
+		let selectedData = {};
+		
+		// Load availability for this user + event
+		async function loadUserAvailability() {
+			const { data, error } = await supabase
+				.from('availabilities')
+				.select('date, status')
+				.eq('uuid', uuid)
+				.eq('eventName', eventName);
+		
+			if (error) {
+				console.error('Load error:', error);
+				return;
+			}
+		
+			data.forEach(({ date, status }) => {
+				selectedData[date] = status;
+				calendar.addEvent({
+					id: date,
+					title: status.toUpperCase(),
+					start: date,
+					allDay: true,
+					backgroundColor: colors[status],
+					borderColor: colors[status],
+					textColor: '#fff',
+					extendedProps: { status }
+				});
+			});
+		}
+		
+		// Submit current selections
+		document.getElementById('submitButton').addEventListener('click', async () => {
+			const name = document.getElementById('nameInput').value.trim();
+			if (!name) return alert('Please enter your name');
+			if (Object.keys(selectedData).length === 0) return alert('Please select at least one date');
+		
+			saveUserName(name);
+		
+			// Delete old entries first (optional but cleaner)
+			await supabase
+				.from('availabilities')
+				.delete()
+				.eq('uuid', uuid)
+				.eq('eventName', eventName);
+		
+			// Insert new entries
+			const entries = Object.entries(selectedData).map(([date, status]) => ({
+				uuid,
+				name,
+				eventName,
+				date,
+				status
+			}));
+		
+			const { error } = await supabase
+				.from('availabilities')
+				.insert(entries);
+		
+			if (error) {
+				alert('Submission failed: ' + error.message);
+			} else {
+				alert('Submitted successfully!');
+			}
+		});
+		
+		window.addEventListener('DOMContentLoaded', () => {
+			const name = getUserName();
+			if (name) document.getElementById('nameInput').value = name;
+			loadUserAvailability();
+		});
 
-    const getUUID = () => {
-      let id = localStorage.getItem('user_uuid');
-      if (!id) {
-        id = crypto.randomUUID();
-        localStorage.setItem('user_uuid', id);
-      }
-      return id;
-    };
-
-    const getUserName = () => {
-      return localStorage.getItem('username') || '';
-    };
-
-    const saveUserName = (name) => {
-      localStorage.setItem('username', name);
-    };
-
-    const calendarEl = document.getElementById('calendar');
-    let selectedData = {};
-
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth',
-      selectable: true,
-      selectMirror: true,
-      select: function(info) {
-        const dateStr = info.startStr;
-        const existing = calendar.getEventById(dateStr);
-        let nextStatusIndex = 0;
-        if (existing) {
-          const currentStatus = existing.extendedProps.status;
-          nextStatusIndex = (statusCycle.indexOf(currentStatus) + 1) % statusCycle.length;
-          existing.remove();
-        }
-        const newStatus = statusCycle[nextStatusIndex];
-        delete selectedData[dateStr];
-        if (newStatus !== 'clear') {
-          selectedData[dateStr] = newStatus;
-          calendar.addEvent({
-            id: dateStr,
-            title: newStatus.toUpperCase(),
-            start: dateStr,
-            allDay: true,
-            backgroundColor: colors[newStatus],
-            borderColor: colors[newStatus],
-            textColor: '#fff',
-            extendedProps: { status: newStatus }
-          });
-        }
-      }
-    });
-
-    calendar.render();
-
-    async function loadUserAvailability() {
-      const uuid = getUUID();
-      const eventName = getEventName();
-      const url = `${scriptBase}?uuid=${uuid}&eventName=${encodeURIComponent(eventName)}`;
-
-      try {
-        const res = await fetch(url);
-        const result = await res.json();
-        if (result.success && Array.isArray(result.entries)) {
-          result.entries.forEach(({ date, status }) => {
-            selectedData[date] = status;
-            calendar.addEvent({
-              id: date,
-              title: status.toUpperCase(),
-              start: date,
-              allDay: true,
-              backgroundColor: colors[status],
-              borderColor: colors[status],
-              textColor: '#fff',
-              extendedProps: { status }
-            });
-          });
-        }
-      } catch (err) {
-        console.error("Failed to load previous availability", err);
-      }
-    }
-
-    document.getElementById('submitButton').addEventListener('click', async () => {
-      const name = document.getElementById('nameInput').value.trim();
-      const eventName = getEventName();
-      const uuid = getUUID();
-      if (!name) return alert('Please enter your name');
-      if (Object.keys(selectedData).length === 0) return alert('Please select at least one date');
-
-      saveUserName(name);
-
-      const entries = Object.entries(selectedData).map(([date, status]) => ({ date, status }));
-
-      const payload = {
-        name,
-        uuid,
-        eventName,
-        entries
-      };
-
-      try {
-        const res = await fetch(scriptBase, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const result = await res.json();
-        if (result.success) {
-          alert('Submitted successfully!');
-        } else {
-          alert('Submission failed: ' + (result.error || 'Unknown error'));
-        }
-      } catch (err) {
-        alert('Error submitting data. Check the script URL and permissions.');
-        console.error(err);
-      }
-    });
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const name = getUserName();
-      if (name) document.getElementById('nameInput').value = name;
-      loadUserAvailability();
-    });
-  </script>
+	</script>
 </body>
 </html>
