@@ -4,7 +4,8 @@
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>Meetup Scheduler</title>
-	<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+	<!-- ✅ Correct FullCalendar CSS -->
+	<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet" />
 	<style>
 		body { font-family: sans-serif; margin: 2rem; }
 		#calendar { max-width: 700px; margin: 2rem auto; }
@@ -34,31 +35,34 @@
 		<span class="awful">❌ Awful</span>
 	</div>
 	<div id="calendar"></div>
+
+	<!-- ✅ Load libraries first -->
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
 	<script>
-	(async () => {
+	document.addEventListener('DOMContentLoaded', async () => {
 		// Supabase config
 		const supabaseUrl = "https://gkpfmiomjxshpaodisxa.supabase.co";
 		const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrcGZtaW9tanhzaHBhb2Rpc3hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTIzNDgsImV4cCI6MjA2Njk4ODM0OH0.Svi1Xl88euqNn9osgXvbkPgb-iVrKo5mPCdIdWUP45g";
 		const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-	
+
 		// Get or create UUID
 		let uuid = localStorage.getItem("user_uuid");
 		if (!uuid) {
 			uuid = crypto.randomUUID();
 			localStorage.setItem("user_uuid", uuid);
 		}
-	
+
 		// Read name from localStorage
 		const nameInput = document.getElementById("nameInput");
 		const storedName = localStorage.getItem("username");
 		if (storedName) nameInput.value = storedName;
-	
+
 		// Read eventName from URL or default
 		const urlParams = new URLSearchParams(window.location.search);
 		const eventName = urlParams.get("event") || "DefaultEvent";
-	
+
 		// Status cycle & colors
 		const statuses = ["great", "good", "bad", "awful", "clear"];
 		const colors = {
@@ -67,10 +71,10 @@
 			bad: "#BFA730",
 			awful: "#BF3030"
 		};
-	
+
 		// Track selected dates & statuses
 		let selectedData = {};
-	
+
 		// Init FullCalendar
 		const calendarEl = document.getElementById('calendar');
 		const calendar = new FullCalendar.Calendar(calendarEl, {
@@ -101,7 +105,7 @@
 			}
 		});
 		calendar.render();
-	
+
 		// Load existing data
 		async function loadData() {
 			const { data, error } = await supabase
@@ -124,7 +128,7 @@
 			});
 		}
 		await loadData();
-	
+
 		// Submit handler
 		document.getElementById("submitButton").addEventListener("click", async () => {
 			const name = nameInput.value.trim();
@@ -160,7 +164,7 @@
 				alert("Availability saved!");
 			}
 		});
-	})();
+	});
 	</script>
 </body>
 </html>
